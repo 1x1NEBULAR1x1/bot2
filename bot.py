@@ -1,11 +1,11 @@
 import asyncio
 import datetime
 
+import uvicorn
 from aiogram.client.bot import Bot
 from aiogram import Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-
-from config import TOKEN, ADMINS_IDS, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, CHATS_IDS
+from cfg import TOKEN, ADMINS_IDS, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, CHATS_IDS
 from db import (create_tables, daily_winner, set_new_daily_loto, get_daily_users, update_balance, weekly_winner,
                 get_weekly_users, set_new_weekly_loto, set_new_monthly_loto, monthly_winner, get_monthly_users,
                 set_monthly_loto, set_weekly_loto, set_daily_loto, get_user, get_monthly_moment_loto,
@@ -14,7 +14,17 @@ from heandlers import heandlers
 from callbacks import callbacks
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import keyboards as kb
+from fastapi import FastAPI
 
+app = FastAPI()
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+async def app():
+    config = uvicorn.config.Config(host='0.0.0.0', port=8000, app=app)
+    server = uvicorn.Server(config=config)
+    await server.serve()
 
 
 async def process_daily_loto(bot: Bot):
@@ -174,6 +184,9 @@ async def main():
         await bot.session.close()
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        loop = asyncio.new_event_loop()
+        loop.create_task(main())
+        loop.create_task(app())
+        loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
         print('Exit')

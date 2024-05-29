@@ -10,7 +10,7 @@ from aiogram.types import CallbackQuery
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import keyboards as kb
-from config import BOT_USERNAME, ADMINS_IDS, REFERRER_MISSION, END_GAME_MESSAGE, CHATS_IDS, MOMENT_LOTO, DAILY_LOTO, \
+from cfg import BOT_USERNAME, ADMINS_IDS, REFERRER_MISSION, END_GAME_MESSAGE, CHATS_IDS, MOMENT_LOTO, DAILY_LOTO, \
     WEEKLY_LOTO, MONTHLY_LOTO, MODERATORS_IDS, QUESTIONS, HELP, LOTO_TYPE, LOTO_LIMIT
 from db import (get_last_game, delete_game, start_game, get_users, get_game, join_game, get_user_address,
                 get_active_addresses_count, get_referrers_count, get_addresses, deactivate_address,

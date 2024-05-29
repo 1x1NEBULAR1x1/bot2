@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ChatPermissions, ChatJoinRequest, ChatMemberUpdated
 from aiogram.filters import CommandStart, Command, CommandObject, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from config import ADMINS_IDS, START_BUTTONS, CHAT_PERMISSIONS, MOMENT_LOTO, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, \
+from cfg import ADMINS_IDS, START_BUTTONS, CHAT_PERMISSIONS, MOMENT_LOTO, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, \
     CHATS_IDS, SUB_NOTIF, KARMA_TIMEOUT, MODERATORS_IDS, GOODBYE_MESSAGE, LOTO_LIMIT
 import keyboards as kb
 from db import (register_user, check_subscribe_db, add_message, add_game, get_last_game, add_address,

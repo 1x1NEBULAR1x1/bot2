@@ -6,7 +6,6 @@ KARMA_TIMEOUT = 5
 # Время, через которое можно будет снова учавствовать в играх (в часах)
 GAME_TIMEOUT = 24
 BOT_USERNAME = ''
-
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
 

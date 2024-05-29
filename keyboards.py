@@ -2,7 +2,7 @@ import datetime
 
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from config import ADMIN_ACCOUNT_URL, BOT_USERNAME
+from cfg import ADMIN_ACCOUNT_URL, BOT_USERNAME
 from db import get_active_game, get_address, get_prize, get_last_game, get_game_user, get_user, \
     check_weekly_user, check_monthly_user, check_daily_user, \
     get_daily_users_count, get_weekly_users_count, get_monthly_users_count, get_send, get_scheduled_send, \
