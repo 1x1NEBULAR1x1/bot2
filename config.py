@@ -1,79 +1,193 @@
-# Description: Файл конфигурации бота
-from aiogram.types import ChatPermissions
+import asyncio
+import datetime
+
+import uvicorn.server
+from aiogram.client.bot import Bot
+from aiogram import Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+
+from middlewares import AntiFloodMiddleware
+from config import TOKEN, ADMINS_IDS, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, CHATS_IDS
+from db import (create_tables, daily_winner, set_new_daily_loto, get_daily_users, update_balance, weekly_winner,
+                get_weekly_users, set_new_weekly_loto, set_new_monthly_loto, monthly_winner, get_monthly_users,
+                set_monthly_loto, set_weekly_loto, set_daily_loto, get_user, get_monthly_moment_loto,
+                get_daily_moment_loto, deactivate_sends, get_time_limit, get_users)
+from heandlers import heandlers
+from callbacks import callbacks
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import keyboards as kb
+from fastapi import FastAPI
+
+app = FastAPI()
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+async def app():
+    config = uvicorn.config.Config(host='0.0.0.0', port=8000, app=app)
+    server = uvicorn.server.Server(config=config)
+    await server.serve()
 
 
-GOODBYE_MESSAGE = ('Если вас что-то не устроило, '
-                  'опишите администратору свою проблему, мы постараемся её решить!\n'
-                  'Вы в любой момент можете вернуться в чат, перейдя по ссылке')
-
-QUESTIONS = [
-    ['Какой город является столицей России?', 'Москва'],
-]
-
-HELP = 'Для начала игры введите команду /start'
-
-# Токен бота, полученный у @BotFather
-# В кавычках вставьте токен вашего бота
-TOKEN = '7098192641:AAFuG5cv7ehDHuGPjA4EMW0TO67FwZcinTU'
-# Список айди администраторов, которым будут доступны админские команды
-# Для получения айди администратора, напишите боту @getmyid_bot
-# В квадратных скобках через запятую вставьте айди администраторов
-# Первый администратор будет получать отчеты и уведомления
-ADMINS_IDS = [644639853, 6950213934]
-dev = 644639853
-MODERATORS_IDS = []
-# Ссылка на аккаунт администратора, необходима для создания кнопки связи с администратором
-# Пример: 'tg://resolve?domain=username'
-# Для создания ссылки, нужно вставить username администратора после знака равно
-ADMIN_ACCOUNT_URL = 'tg://resolve?domain='
-# Юзернейм бота, необходим для создания пригласительной ссылки
-#https://t.me/sadgsajguafhdgikjarhgjughihbgbot?start=974466488
-BOT_USERNAME = ''
-# Кнопки стартового меню, первая кнопка - это название кнопки, вторая - это ссылка на канал, третья - это id чата
-# Обязательно должны быть все три параметра
-# Обязательно заполнять в формате, приведенном ниже
-# ID чата можно получить, написав команду /get_chat_id в нужном канале
-# Пример:
-'''
-START_BUTTONS = [
-   {'button_text': 'Название кнопки в кавычках', 'button_url': 'Ссылка в кавычках', 'chat_id': айди чата без кавычек}, <- запятая после скобки, если это не последняя кнопка
-   {'button_text': 'Канал 1', 'button_url': 'https://t.me/+P2oBXAqEOAAwYzhi', 'chat_id': -1002007586729} <- без запятой в конце списка кнопок
-]
-'''
-# Если кнопоки заполнены неправильно, бот не будет работать корректно!!!
-START_BUTTONS = []
-# Айди чатов, в который будут приходить уведомления об играх
-CHATS_IDS = [-1002034021429]
-# Шансы на выигрыш в игре и коэффициенты умножения ставки
-# Первое число - это шанс на выигрыш, второе - это коэффициент умножения ставки
-# Шанс на выигрыш можно задать от 1 до 100, коэффициент умножения ставки можно задать от 1.01 до 100
-MOMENT_LOTO = [50, 2]
-# Стартовая сумма ежеедневной, еженедельной и ежемесячной лотереи, а также коэффициент умножения каждого
-# участия в моментальной лотерее
-# Пример: [500, 1] - 500 - это стартовая сумма, 1 - это коэффициент умножения количества участий
-# (к примеруб коэффициент 2 - при 1000 участиях выигрыш будет 1000 * 2 = 2000)
-DAILY_LOTO = [500, 1]
-WEEKLY_LOTO = [1000, 1]
-MONTHLY_LOTO = [4000, 1]
-# Количество приглашений, которое нужно отправить, чтобы получить бесплатный адрес
-REFERRER_MISSION = 15
-# Сообщение, которое будет отправляться при отмене игры
-END_GAME_MESSAGE = 'Игра отменена, просим прощения'
-# Время, через которое можно будет снова подарить +1 в карму другому пользователю (в минутах)
-KARMA_TIMEOUT = 5
-# Время, через которое можно будет снова учавствовать в играх (в часах)
-GAME_TIMEOUT = 24
-# Разрешения для пользователей в чате при размуте (True - разрешено, False - запрещено)
-CHAT_PERMISSIONS = ChatPermissions(
-    can_send_photos=True,
-    can_send_audios=True,
-    can_send_documents=True,
-    can_send_messages=True,
-    can_send_videos=True,
-    can_send_polls=True,
-    can_send_video_notes=True,
-    can_send_voice_notes=True)
-# Параметр отвечает за отправку уведомлений о присоединении новых пользователей в бота
-SUB_NOTIF = False
-LOTO_TYPE = ['standart']
-LOTO_LIMIT = [0, 1000000]
+async def process_daily_loto(bot: Bot):
+    winner = await daily_winner()
+    if not winner:
+        await set_new_daily_loto()
+        return
+    users = await get_daily_users()
+    daily_loto = await get_daily_moment_loto()
+    value = DAILY_LOTO[0] + daily_loto[0] * DAILY_LOTO[1]
+    await bot.send_message(chat_id=winner[0], text=f'🎉  <b>Поздравляем, вы победили в ежедневной лотерее! </b>\n'
+                                                   f'✨  <b>Ваш выигрыш: {value}</b>!',
+                           reply_markup=await kb.user_back_keyboard())
+    await asyncio.sleep(0.05)
+    await update_balance(winner[0], value)
+    await bot.send_message(chat_id=ADMINS_IDS[0], text=f'<b>⏳  Победитель дня: {winner[1]} - {value}</b>',
+                           reply_markup=await kb.admin_back_keyboard())
+    await asyncio.sleep(0.05)
+    for user in users:
+        if user != winner[0]:
+            winner_user = await get_user(winner[0])
+            if winner_user[12] == 1:
+                winner_username = '🕶  Анонимный пользователь'
+            else:
+                winner_username = f'@{winner_user[1]}'
+            await bot.send_message(chat_id=user, text=f'✨  <b>Ежедневная лотерея завершена, победитель дня: \n'
+                                                      f'{winner_username}</b>',
+                                   reply_markup=await kb.user_back_keyboard())
+            await asyncio.sleep(0.06)
+    for chat in CHATS_IDS:
+        winner_user = await get_user(winner[0])
+        if winner_user[12] == 1:
+            winner_username = '🕶  Анонимный пользователь'
+        else:
+            winner_username = f'@{winner_user[1]}'
+        await bot.send_message(chat_id=chat, text=f'🎉  <b>Поздравляем, победитель дня: \n{winner_username}</b>',
+                               reply_markup=await kb.bot_url())
+        await asyncio.sleep(0.05)
+    await set_new_daily_loto()
+async def process_weekly_loto(bot: Bot):
+    winner = await weekly_winner()
+    if not winner:
+        await set_new_weekly_loto()
+        return
+    users = await get_weekly_users()
+    weekly_loto = await get_daily_moment_loto()
+    value = WEEKLY_LOTO[0] + weekly_loto[0] * WEEKLY_LOTO[1]
+    winner_user = await get_user(winner[0])
+    if winner_user[12] == 1:
+        winner_username = '🕶  Анонимный пользователь'
+    else:
+        winner_username = f'@{winner_user[1]}'
+    await bot.send_message(chat_id=winner[0], text=f'🎉  <b>Поздравляем, вы победили в еженедельной лотерее! </b>\n'
+                                                   f'✨  <b>Ваш выигрыш: {value}</b>!',
+                           reply_markup=await kb.user_back_keyboard())
+    await asyncio.sleep(0.05)
+    await update_balance(winner[0], value)
+    await bot.send_message(chat_id=ADMINS_IDS[0], text=f'<b>⏳  Победитель недели: {winner_username} - {value}</b>',
+                           reply_markup=await kb.admin_back_keyboard())
+    await asyncio.sleep(0.05)
+    for user in users:
+        if user != winner[0]:
+            await bot.send_message(chat_id=user, text=f'✨  <b>Еженедельная лотерея завершена, \nпобедитель недели: '
+                                   f'{winner_username}</b>', reply_markup=await kb.user_back_keyboard())
+            await asyncio.sleep(0.06)
+    for chat in CHATS_IDS:
+        winner_user = await get_user(winner[0])
+        if winner_user[12] == 1:
+            winner_username = '🕶  Анонимный пользователь'
+        else:
+            winner_username = f'@{winner_user[1]}'
+        await bot.send_message(chat_id=chat, text=f'🎉  <b>Поздравляем, победитель недели: \n{winner_username}</b>',
+                               reply_markup=await kb.bot_url())
+        await asyncio.sleep(0.05)
+    await set_new_weekly_loto()
+async def process_monthly_loto(bot: Bot):
+    winner = await monthly_winner()
+    if not winner:
+        await set_new_monthly_loto()
+        return
+    users = await get_monthly_users()
+    monthly_loto = await get_monthly_moment_loto()
+    value = MONTHLY_LOTO[0] + monthly_loto[0] * MONTHLY_LOTO[1]
+    await bot.send_message(chat_id=winner[0], text=f'🎉  <b>Поздравляем, вы победили в ежемесячной лотерее! </b>\n'
+                                                   f'✨  <b>Ваш выигрыш: {value}</b>!',
+                           reply_markup=await kb.user_back_keyboard())
+    await asyncio.sleep(0.05)
+    await update_balance(winner[0], value)
+    winner_user = await get_user(winner[0])
+    await bot.send_message(chat_id=ADMINS_IDS[0], text=f'<b>⏳  Победитель месяца: {winner_user[1]} - {value}</b>',
+                           reply_markup=await kb.admin_back_keyboard())
+    await asyncio.sleep(0.05)
+    for user in users:
+        if user != winner[0]:
+            winner_user = await get_user(winner[0])
+            if winner_user[12] == 1:
+                winner_username = '🕶  Анонимный пользователь'
+            else:
+                winner_username = f'@{winner_user[1]}'
+            await bot.send_message(chat_id=user, text=f'✨  <b>Ежемесячная лотерея завершена, победитель месяца:\n'
+                                   f'{winner_username}</b>', reply_markup=await kb.user_back_keyboard())
+            await asyncio.sleep(0.06)
+    await set_new_monthly_loto()
+    for chat in CHATS_IDS:
+        winner_user = await get_user(winner[0])
+        if winner_user[12] == 1:
+            winner_username = '🕶  Анонимный пользователь'
+        else:
+            winner_username = f'@{winner_user[1]}'
+        await bot.send_message(chat_id=chat, text=f'🎉  <b>Поздравляем, победитель месяца: \n{winner_username}</b>',
+                               reply_markup=await kb.bot_url())
+        await asyncio.sleep(0.05)
+async def process_time_checker(bot: Bot):
+    users = await get_users()
+    for user in users:
+        user = await get_user(user[0])
+        if user[3] == str((datetime.datetime.now() + datetime.timedelta(days=3)).date()):
+            await bot.send_message(chat_id=user[0], text='🕒  <b>Через 3 дня заканчивается ваша подписка на бота, '
+                                                         'для продления напишите администратору</b>',
+                                   reply_markup=await kb.admin_url_keyboard())
+async def start():
+    print('start')
+async def shutdown():
+    await deactivate_sends()
+    print('shutdown')
+async def main():
+    bot = Bot(token=TOKEN, parse_mode='HTML')
+    await create_tables()
+    await set_monthly_loto()
+    await set_weekly_loto()
+    await set_daily_loto()
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(process_time_checker, trigger='cron', hour=18, minute=0, start_date=datetime.datetime.now(),
+                      kwargs={'bot': bot})
+    scheduler.add_job(process_daily_loto, trigger='cron', hour=0, minute=0, start_date=datetime.datetime.now(),
+                      kwargs={'bot': bot})
+    scheduler.add_job(process_weekly_loto, trigger='cron', day_of_week='mon', hour=0, minute=0,
+                      start_date=datetime.datetime.now(), kwargs={'bot': bot})
+    scheduler.add_job(process_monthly_loto, trigger='cron', day=1, hour=0, minute=0, start_date=datetime.datetime.now(),
+                      kwargs={'bot': bot})
+    scheduler.start()
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
+    limit = 0.5
+    if await get_time_limit():
+        limit = float((await get_time_limit())[0])
+    dp.message.middleware.register(AntiFloodMiddleware(limit))
+    dp.callback_query.middleware.register(AntiFloodMiddleware(limit))
+    dp.startup.register(start)
+    dp.shutdown.register(shutdown)
+    dp.include_routers(heandlers, callbacks)
+    await bot.delete_webhook(drop_pending_updates=True)
+    try:
+        await dp.start_polling(bot, scheduler=scheduler)
+    finally:
+        await bot.session.close()
+if __name__ == "__main__":
+    try:
+        loop = asyncio.new_event_loop()
+        loop.create_task(main())
+        loop.create_task(app())
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        print('Exit')
