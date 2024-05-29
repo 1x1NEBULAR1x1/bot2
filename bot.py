@@ -5,7 +5,6 @@ from aiogram.client.bot import Bot
 from aiogram import Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from middlewares import AntiFloodMiddleware
 from config import TOKEN, ADMINS_IDS, MONTHLY_LOTO, WEEKLY_LOTO, DAILY_LOTO, CHATS_IDS
 from db import (create_tables, daily_winner, set_new_daily_loto, get_daily_users, update_balance, weekly_winner,
                 get_weekly_users, set_new_weekly_loto, set_new_monthly_loto, monthly_winner, get_monthly_users,
@@ -162,6 +161,7 @@ async def main():
     limit = 0.5
     if await get_time_limit():
         limit = float((await get_time_limit())[0])
+    from middlewares import AntiFloodMiddleware
     dp.message.middleware.register(AntiFloodMiddleware(limit))
     dp.callback_query.middleware.register(AntiFloodMiddleware(limit))
     dp.startup.register(start)
