@@ -2,7 +2,10 @@ import datetime
 import random
 import sqlite3
 
-from config import KARMA_TIMEOUT, BOT_USERNAME, GAME_TIMEOUT
+KARMA_TIMEOUT = 5
+# Время, через которое можно будет снова учавствовать в играх (в часах)
+GAME_TIMEOUT = 24
+BOT_USERNAME = ''
 
 conn = sqlite3.connect('database.db')
 cursor = conn.cursor()
