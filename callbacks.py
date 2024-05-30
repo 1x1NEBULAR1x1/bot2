@@ -1250,7 +1250,7 @@ async def admin_send_end(call: CallbackQuery, bot: Bot):
     for user in users:
         await asyncio.sleep(0.05)
         try:
-            await bot.send_message(chat_id=user, text=END_GAME_MESSAGE, reply_markup=await kb.user_back_keyboard())
+            await bot.send_message(chat_id=user[0], text=END_GAME_MESSAGE, reply_markup=await kb.user_back_keyboard())
         except TelegramBadRequest:
             pass
     for chat in CHATS_IDS:
@@ -1391,7 +1391,10 @@ async def user_game(call: CallbackQuery, bot: Bot):
             await call.message.edit_text(text='⛔  Вы заблокированы!', reply_markup=None)
             return
         user = await get_user(user_id=call.message.chat.id)
-        is_vip = datetime.datetime.fromisoformat(user[10]) > datetime.datetime.now()
+        if user[10]:
+            is_vip = datetime.datetime.fromisoformat(user[10]) > datetime.datetime.now()
+        else:
+            is_vip = False
         timeout = await get_game_timeout(user_id=call.message.chat.id)
         if not is_vip:
             if timeout:
@@ -1892,7 +1895,8 @@ async def user_menu(call: CallbackQuery, state: FSMContext):
         await call.message.edit_text(text=text, reply_markup=await kb.user_menu(call.message.chat.id))
     else:
         await call.message.edit_text(text='<b>⛔  Подписка на бота закончилась!</b>\n<i>⚠  Для участия в играх необходи'
-                                          'мо оформить подписку!</i>\n', reply_markup=await kb.admin_url_keyboard(status=false))
+                                          'мо оформить подписку!</i>\n',
+                                     reply_markup=await kb.admin_url_keyboard(status=False))
 @callbacks.callback_query(F.data == 'user_prizes')
 async def user_prizes(call: CallbackQuery):
     game = await get_active_game()
